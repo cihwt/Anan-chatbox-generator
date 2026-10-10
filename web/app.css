@@ -355,7 +355,7 @@ input[type=file] { display: none; }
 /* generate toolbar (shared look; wider + wraps) */
 .gen-controls {
   flex-wrap: wrap;
-  width: min(600px, calc(100vw - 32px));
+  width: min(760px, calc(100vw - 32px));
   max-height: calc(100vh - 88px);
   overflow: auto;
 }
@@ -503,6 +503,12 @@ input[type=range]::-moz-range-thumb {
 }
 .swatch.plus:hover { color: var(--accent); border-color: var(--accent); }
 .swatch.plus svg { width: 15px; height: 15px; }
+.swatch.none {
+  background: repeating-linear-gradient(135deg, #9aa2b1 0 2px, transparent 2px 7px);
+}
+.fill-preview.none {
+  background: repeating-linear-gradient(135deg, #9aa2b1 0 2px, transparent 2px 7px) !important;
+}
 .pop-divider {
   height: 1px;
   background: var(--line);
@@ -731,6 +737,7 @@ textarea:focus { outline: none; border-color: var(--accent); }
 }
 .gen-flow {
   width: 100%;
+  padding: 0.12em 0;
   text-align: center;
   white-space: pre-wrap;
   overflow-wrap: break-word;

@@ -1110,10 +1110,19 @@
     });
   }
 
+  // remember the last chosen template so it reopens on next load
+  var LAST_TPL_KEY = "last-template";
+  function getLastTemplate() {
+    try { return localStorage.getItem(LAST_TPL_KEY) || null; } catch (_) { return null; }
+  }
+  function saveLastTemplate(id) {
+    try { if (id) { localStorage.setItem(LAST_TPL_KEY, id); } } catch (_) {}
+  }
+
   function populateGenSelect() {
     return window.Store.list().then(function (all) {
       genRecords = all;
-      var prev = genRecord ? genRecord.id : null;
+      var prev = genRecord ? genRecord.id : getLastTemplate();
       var gen = ++tplGen;
       tplUrls.forEach(function (u) { URL.revokeObjectURL(u); });
       tplUrls = [];
@@ -1155,6 +1164,7 @@
     }
     if (!rec) { return; }
     genRecord = rec;
+    saveLastTemplate(rec.id);
     genPoints = fixCrossing((rec.points || []).slice()); // working copy, unsaved
     var gen = ++genGen;
     genFrame.classList.remove("hidden");
@@ -1200,6 +1210,22 @@
     }
   }
 
+  // background is drawn on the .gen-flow block, so it fills each text row (not the whole region)
+  function applyBgStyle() {
+    var flow = genInner.firstChild;
+    if (!flow) { return; }
+    if (bgStyle.fill === "gradient") {
+      flow.style.backgroundImage = gradientCSS(bgStyle.gradient);
+      flow.style.backgroundColor = "";
+    } else if (bgStyle.fill === "solid") {
+      flow.style.backgroundImage = "";
+      flow.style.backgroundColor = bgStyle.color;
+    } else {
+      flow.style.backgroundImage = "";
+      flow.style.backgroundColor = "";
+    }
+  }
+
   // fontStyle.fontSize is a maximum: shrink until the text fits the region
   function textFits() {
     return genInner.scrollHeight <= genText.clientHeight + 1 &&
@@ -1242,6 +1268,7 @@
     genInner.style.fontWeight = textStyle.fontWeight;
     genInner.style.lineHeight = textStyle.lineHeight;
     applyFill();
+    applyBgStyle();
 
     // overlay image on top
     if (genRecord.overlay && genOvSrc) {
@@ -1308,7 +1335,7 @@
     genFontVal.textContent = textStyle.fontSize;
     renderGen();
   });
-  // ---------- fill picker ----------
+  // ---------- fill pickers (文字颜色 + 文字背景) ----------
   var SOLIDS = [
     "#ffffff", "#000000", "#ff5c72", "#ffd23f", "#4c9aff", "#34d399",
     "#a78bfa", "#f472b6", "#fb923c", "#22d3ee", "#94a3b8", "#facc15"
@@ -1324,56 +1351,35 @@
   function gradientCSS(g) {
     return "linear-gradient(" + g.angle + "deg," + g.from + "," + g.to + ")";
   }
-
-  function updateFillPreview() {
-    if (textStyle.fill === "gradient") {
-      var css = gradientCSS(textStyle.gradient);
-      fillPreview.style.background = css;
-      gradPreview.style.background = css;
-    } else {
-      fillPreview.style.background = textStyle.color;
-      gradPreview.style.background = gradientCSS(textStyle.gradient);
-    }
+  // inline CSS for the text-background in the exported SVG
+  function bgDecl() {
+    if (bgStyle.fill === "gradient") { return "background-image:" + gradientCSS(bgStyle.gradient) + ";"; }
+    if (bgStyle.fill === "solid") { return "background-color:" + bgStyle.color + ";"; }
+    return "";
+  }
+  function fillPreviewValue(s) {
+    if (s.fill === "gradient") { return gradientCSS(s.gradient); }
+    if (s.fill === "none") { return "transparent"; }
+    return s.color;
   }
 
-  function applyAndPreview() {
-    applyFill();
-    renderGen();
-    updateFillPreview();
-  }
-
-  function selectSolid(color) {
-    textStyle.fill = "solid";
-    textStyle.color = color;
-    applyAndPreview();
-    closePopover();
-  }
-
-  function selectGradient(g) {
-    textStyle.fill = "gradient";
-    textStyle.gradient = { from: g.from, to: g.to, angle: g.angle };
-    genAngle.value = g.angle;
-    genAngleVal.textContent = g.angle + "\u00b0";
-    applyAndPreview();
-    closePopover();
-  }
-
-  function makeSwatch(kind, data) {
+  function makeSwatch(kind, data, onPick) {
     var b = document.createElement("button");
     b.type = "button";
     b.className = "swatch";
-    if (kind === "solid") {
-      b.style.background = data;
-      b.title = data;
-      b.addEventListener("click", function () { selectSolid(data); });
-    } else {
-      b.style.background = gradientCSS(data);
-      b.title = "Gradient";
-      b.addEventListener("click", function () { selectGradient(data); });
-    }
+    if (kind === "solid") { b.style.background = data; b.title = data; }
+    else { b.style.background = gradientCSS(data); b.title = "渐变"; }
+    b.addEventListener("click", function () { onPick(data); });
     return b;
   }
-
+  function makeSwatchNone(onClick) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "swatch none";
+    b.title = "无背景";
+    b.addEventListener("click", onClick);
+    return b;
+  }
   function makePlus(title, onClick) {
     var b = document.createElement("button");
     b.type = "button";
@@ -1385,75 +1391,95 @@
     return b;
   }
 
-  SOLIDS.forEach(function (c) { solidSwatches.appendChild(makeSwatch("solid", c)); });
-  solidSwatches.appendChild(makePlus("Custom colour", function () {
-    customSolidRow.classList.remove("hidden");
-    customSolid.click();
-  }));
-  GRADIENTS.forEach(function (g) { gradientSwatches.appendChild(makeSwatch("gradient", g)); });
-  gradientSwatches.appendChild(makePlus("Custom gradient", showGradView));
+  function setupFillPicker(cfg) {
+    var state = cfg.state;
 
-  function showListView() {
-    fillListView.classList.remove("hidden");
-    fillGradView.classList.add("hidden");
-    if (!fillPop.classList.contains("hidden")) { placePopover(fillPop, fillTrigger); }
-  }
-  function showGradView() {
-    textStyle.fill = "gradient";
-    fillListView.classList.add("hidden");
-    fillGradView.classList.remove("hidden");
-    gradColor1.value = textStyle.gradient.from;
-    gradColor2.value = textStyle.gradient.to;
-    genAngle.value = textStyle.gradient.angle;
-    genAngleVal.textContent = textStyle.gradient.angle + "\u00b0";
-    applyAndPreview();
-    placePopover(fillPop, fillTrigger);
-  }
-  function openPopover() {
-    fillPop.classList.remove("hidden");
-    showListView();
-  }
-  function closePopover() {
-    fillPop.classList.add("hidden");
-    customSolidRow.classList.add("hidden");
+    function preview() {
+      if (cfg.previewEl) {
+        cfg.previewEl.style.background = fillPreviewValue(state);
+        cfg.previewEl.classList.toggle("none", state.fill === "none");
+      }
+      if (cfg.gradPreview) { cfg.gradPreview.style.background = gradientCSS(state.gradient); }
+    }
+    function apply() { if (cfg.onChange) { cfg.onChange(); } preview(); }
+    function close() { cfg.pop.classList.add("hidden"); cfg.customSolidRow.classList.add("hidden"); }
+    function pickSolid(color) { state.fill = "solid"; state.color = color; apply(); close(); }
+    function pickGradient(g) {
+      state.fill = "gradient";
+      state.gradient = { from: g.from, to: g.to, angle: g.angle };
+      cfg.angle.value = g.angle; cfg.angleVal.textContent = g.angle + "\u00b0";
+      apply(); close();
+    }
+    function pickNone() { state.fill = "none"; apply(); close(); }
+
+    function showList() {
+      cfg.listView.classList.remove("hidden");
+      cfg.gradView.classList.add("hidden");
+      if (!cfg.pop.classList.contains("hidden")) { placePopover(cfg.pop, cfg.trigger); }
+    }
+    function showGrad() {
+      state.fill = "gradient";
+      cfg.listView.classList.add("hidden");
+      cfg.gradView.classList.remove("hidden");
+      cfg.gradColor1.value = state.gradient.from;
+      cfg.gradColor2.value = state.gradient.to;
+      cfg.angle.value = state.gradient.angle;
+      cfg.angleVal.textContent = state.gradient.angle + "\u00b0";
+      apply();
+      placePopover(cfg.pop, cfg.trigger);
+    }
+
+    if (cfg.allowNone) { cfg.solidSwatches.appendChild(makeSwatchNone(pickNone)); }
+    SOLIDS.forEach(function (c) { cfg.solidSwatches.appendChild(makeSwatch("solid", c, pickSolid)); });
+    cfg.solidSwatches.appendChild(makePlus("自定义颜色", function () {
+      cfg.customSolidRow.classList.remove("hidden"); cfg.customSolid.click();
+    }));
+    GRADIENTS.forEach(function (g) { cfg.gradientSwatches.appendChild(makeSwatch("gradient", g, pickGradient)); });
+    cfg.gradientSwatches.appendChild(makePlus("自定义渐变", showGrad));
+
+    cfg.trigger.addEventListener("click", function () {
+      if (cfg.pop.classList.contains("hidden")) { cfg.pop.classList.remove("hidden"); showList(); }
+      else { close(); }
+    });
+    cfg.pop.addEventListener("click", function (e) { e.stopPropagation(); });
+    document.addEventListener("click", function (e) { if (!cfg.root.contains(e.target)) { close(); } });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") { close(); } });
+    cfg.customSolid.addEventListener("input", function () {
+      state.fill = "solid"; state.color = cfg.customSolid.value; apply();
+    });
+    cfg.gradColor1.addEventListener("input", function () { state.gradient.from = cfg.gradColor1.value; state.fill = "gradient"; apply(); });
+    cfg.gradColor2.addEventListener("input", function () { state.gradient.to = cfg.gradColor2.value; state.fill = "gradient"; apply(); });
+    cfg.angle.addEventListener("input", function () {
+      state.gradient.angle = parseInt(cfg.angle.value, 10) || 0;
+      cfg.angleVal.textContent = state.gradient.angle + "\u00b0";
+      state.fill = "gradient"; apply();
+    });
+    cfg.gradBack.addEventListener("click", showList);
+
+    preview();
   }
 
-  fillTrigger.addEventListener("click", function () {
-    if (fillPop.classList.contains("hidden")) { openPopover(); } else { closePopover(); }
+  setupFillPicker({
+    root: fillControl, trigger: fillTrigger, pop: fillPop,
+    listView: fillListView, gradView: fillGradView,
+    solidSwatches: solidSwatches, gradientSwatches: gradientSwatches,
+    customSolidRow: customSolidRow, customSolid: customSolid,
+    gradPreview: gradPreview, gradColor1: gradColor1, gradColor2: gradColor2,
+    angle: genAngle, angleVal: genAngleVal, gradBack: gradBack,
+    previewEl: fillPreview, state: textStyle, onChange: renderGen
   });
-  fillPop.addEventListener("click", function (e) { e.stopPropagation(); });
-  document.addEventListener("click", function (e) {
-    if (!fillControl.contains(e.target)) { closePopover(); }
+  setupFillPicker({
+    root: bgControl, trigger: bgTrigger, pop: bgPop,
+    listView: bgListView, gradView: bgGradView,
+    solidSwatches: bgSolidSwatches, gradientSwatches: bgGradientSwatches,
+    customSolidRow: bgCustomSolidRow, customSolid: bgCustomSolid,
+    gradPreview: bgGradPreview, gradColor1: bgGradColor1, gradColor2: bgGradColor2,
+    angle: bgAngle, angleVal: bgAngleVal, gradBack: bgBack,
+    previewEl: bgPreview, state: bgStyle, onChange: renderGen, allowNone: true
   });
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") { closePopover(); }
-  });
-  customSolid.addEventListener("input", function () {
-    textStyle.fill = "solid";
-    textStyle.color = customSolid.value;
-    applyAndPreview();
-  });
-  gradColor1.addEventListener("input", function () {
-    textStyle.gradient.from = gradColor1.value;
-    textStyle.fill = "gradient";
-    applyAndPreview();
-  });
-  gradColor2.addEventListener("input", function () {
-    textStyle.gradient.to = gradColor2.value;
-    textStyle.fill = "gradient";
-    applyAndPreview();
-  });
-  genAngle.addEventListener("input", function () {
-    textStyle.gradient.angle = parseInt(genAngle.value, 10) || 0;
-    genAngleVal.textContent = textStyle.gradient.angle + "\u00b0";
-    textStyle.fill = "gradient";
-    applyAndPreview();
-  });
-  gradBack.addEventListener("click", function () { showListView(); });
 
   genInput.addEventListener("input", renderGen);
   genImg.addEventListener("load", renderGen);
-  updateFillPreview();
 
   // ---------- on-the-fly selection editing (unsaved until "Overwrite") ----------
   var genDragIndex = -1;
@@ -1571,7 +1597,7 @@
 
     var inner = '<div style="display:flex;align-items:center;justify-content:center;' +
       "width:" + w + "px;height:" + h + "px;font-size:" + fontNat + "px;" + styleDecl() + '">' +
-      '<div style="width:100%;">' + formatText(genInput.value) + "</div></div>";
+      '<div style="width:100%;padding:0.12em 0;' + bgDecl() + '">' + formatText(genInput.value) + "</div></div>";
     var box = '<div style="position:absolute;left:0;top:0;transform-origin:0 0;transform:' +
       matrix + ';">' + inner + "</div>";
     var fo = '<foreignObject x="0" y="0" width="' + W + '" height="' + H + '">' +
@@ -1856,6 +1882,7 @@
         genEmpty.textContent = "选择一个模板，把文字生成到它的区域里。";
         updateTplTrigger();
       }
+      if (removed[getLastTemplate()]) { try { localStorage.removeItem(LAST_TPL_KEY); } catch (_) {} }
       toast("已删除 " + list.length + " 个模板");
       populateGenSelect();
     }, function () {
