@@ -1,0 +1,2023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>安安的素描本聊天框</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header>
+    <h1>安安的素描本聊天框</h1>
+
+    <span class="spacer"></span>
+
+    <div id="editor-subbar" class="subbar hidden">
+      <button type="button" id="editorBack" class="icon-btn" title="返回生成" aria-label="返回生成">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12H5"/>
+          <path d="M12 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <button type="button" class="drag-handle" title="移动工具栏" aria-label="移动工具栏">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v18M3 12h18"/>
+          <path d="M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>
+        </svg>
+      </button>
+      <label class="icon-btn" title="上传背景图" aria-label="上传背景图">
+        <input type="file" id="file" accept="image/*">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M12 8v8M8 12h8"/>
+        </svg>
+      </label>
+      <label class="icon-btn" title="上传叠加图" aria-label="上传叠加图">
+        <input type="file" id="ovFile" accept="image/*">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3l9 5-9 5-9-5z"/>
+          <path d="M3 13l9 5 9-5"/>
+        </svg>
+      </label>
+      <button id="ovRemove" class="icon-btn" title="移除叠加图" aria-label="移除叠加图">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 7h16"/>
+          <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+          <path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/>
+        </svg>
+      </button>
+      <button id="editorRotate" class="icon-btn" title="顺时针旋转 90&deg;" aria-label="顺时针旋转 90 度">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+          <path d="M21 3v6h-6"/>
+        </svg>
+      </button>
+      <button id="editorMirrorH" class="icon-btn" title="水平镜像" aria-label="水平镜像">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v18"/>
+          <path d="M9 7L5 12l4 5z"/>
+          <path d="M15 7l4 5-4 5z"/>
+        </svg>
+      </button>
+      <button id="editorMirrorV" class="icon-btn" title="垂直镜像" aria-label="垂直镜像">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 12h18"/>
+          <path d="M7 9l5-4 5 4z"/>
+          <path d="M7 15l5 4 5-4z"/>
+        </svg>
+      </button>
+      <input type="text" id="name" placeholder="模板名称&hellip;" size="22">
+      <button id="save" class="primary">保存模板</button>
+    </div>
+  </header>
+
+  <!-- ============ Editor view ============ -->
+  <main id="view-editor" class="hidden">
+    <div id="stage">
+      <div id="frame">
+        <img id="pic" alt="待绘制的图片" draggable="false">
+        <svg id="overlay" class="overlay" aria-hidden="true"></svg>
+        <div id="ovBox" class="ov-box hidden">
+          <img id="ovImg" class="ov-img" alt="叠加图" draggable="false">
+          <span class="ov-label">叠加图</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ Generate view ============ -->
+  <div id="view-generate" class="page">
+    <div class="gen-controls">
+      <button type="button" class="drag-handle" title="移动工具栏" aria-label="移动工具栏">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v18M3 12h18"/>
+          <path d="M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>
+        </svg>
+      </button>
+      <div class="tpl-control" id="tplControl">
+        <button type="button" id="tplTrigger" class="fill-trigger" title="选择模板" aria-label="选择模板">
+          <img id="tplTriggerThumb" class="tpl-trigger-thumb" alt="">
+          <span id="tplTriggerName">模板</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 9l6 6 6-6"/>
+          </svg>
+        </button>
+        <div id="tplPop" class="fill-pop tpl-pop hidden">
+          <div class="tpl-pop-bar">
+            <button type="button" id="ppSelectAll" class="icon-btn" title="全选 / 取消全选" aria-label="全选">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="3"/>
+                <path d="M8.5 12.5l2.5 2.5 4.5-5"/>
+              </svg>
+            </button>
+            <button type="button" id="ppImport" class="icon-btn" title="导入 ZIP" aria-label="导入 ZIP">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <path d="M12 16v-5"/>
+                <path d="M9.5 13.5L12 11l2.5 2.5"/>
+              </svg>
+            </button>
+            <button type="button" id="ppExport" class="icon-btn" title="导出 ZIP" aria-label="导出 ZIP">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M17.5 19a4.5 4.5 0 0 0 .5-8.97A6 6 0 0 0 6.2 10.5 4 4 0 0 0 7 19z"/>
+                <path d="M12 11v6"/>
+                <path d="M9.5 14.5L12 17l2.5-2.5"/>
+              </svg>
+            </button>
+            <span class="spacer"></span>
+            <button type="button" id="ppDelete" class="icon-btn danger" title="删除所选" aria-label="删除所选" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 7h16"/>
+                <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                <path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/>
+                <path d="M10 11v6M14 11v6"/>
+              </svg>
+            </button>
+            <input type="file" id="tplImportFile" accept=".zip,application/zip">
+          </div>
+          <div id="tplGrid" class="tpl-grid"></div>
+          <div id="tplEmpty" class="tpl-empty hidden">还没有保存的模板。</div>
+        </div>
+      </div>
+      <button id="genRotate" class="icon-btn" title="顺时针旋转 90&deg;" aria-label="顺时针旋转 90 度">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+          <path d="M21 3v6h-6"/>
+        </svg>
+      </button>
+      <button id="genMirrorH" class="icon-btn" title="水平镜像" aria-label="水平镜像">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v18"/>
+          <path d="M9 7L5 12l4 5z"/>
+          <path d="M15 7l4 5-4 5z"/>
+        </svg>
+      </button>
+      <button id="genMirrorV" class="icon-btn" title="垂直镜像" aria-label="垂直镜像">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 12h18"/>
+          <path d="M7 9l5-4 5 4z"/>
+          <path d="M7 15l5 4 5-4z"/>
+        </svg>
+      </button>
+      <button id="genOverwrite" class="primary">覆写模板</button>
+      <span class="gen-break"></span>
+      <label>最大字号
+        <input type="range" id="genFont" min="8" max="300" step="1" value="48">
+        <span id="genFontVal">48</span>
+      </label>
+      <div class="fill-control" id="fillControl">
+        <button type="button" id="fillTrigger" class="fill-trigger" title="文字填充" aria-label="文字填充">
+          <span id="fillPreview" class="fill-preview"></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 9l6 6 6-6"/>
+          </svg>
+        </button>
+
+        <div id="fillPop" class="fill-pop hidden">
+          <div id="fillListView">
+            <div class="pop-label">纯色</div>
+            <div class="swatches" id="solidSwatches"></div>
+            <div id="customSolidRow" class="custom-row hidden">
+              <input type="color" id="customSolid" value="#000000">
+              <span class="custom-hint">自定义颜色</span>
+            </div>
+            <div class="pop-divider"></div>
+            <div class="pop-label">渐变</div>
+            <div class="swatches" id="gradientSwatches"></div>
+          </div>
+
+          <div id="fillGradView" class="hidden">
+            <div class="grad-head">
+              <button type="button" id="gradBack" class="back-btn" title="返回" aria-label="返回">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M19 12H5"/>
+                  <path d="M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <span class="pop-label" style="margin:0">自定义渐变</span>
+            </div>
+            <div id="gradPreview" class="grad-preview"></div>
+            <div class="grad-colors">
+              <label class="grad-color">
+                <input type="color" id="gradColor1" value="#ffffff" aria-label="颜色 1">
+                <span>颜色 1</span>
+              </label>
+              <label class="grad-color">
+                <input type="color" id="gradColor2" value="#4c9aff" aria-label="颜色 2">
+                <span>颜色 2</span>
+              </label>
+            </div>
+            <div class="pop-divider"></div>
+            <div class="grad-dir">
+              <div class="pop-label">方向 <span id="genAngleVal" class="val">0&deg;</span></div>
+              <input type="range" id="genAngle" min="0" max="330" step="30" value="0">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="fill-control" id="bgControl">
+        <button type="button" id="bgTrigger" class="fill-trigger" title="文字背景" aria-label="文字背景">
+          <span id="bgPreview" class="fill-preview none"></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 9l6 6 6-6"/>
+          </svg>
+        </button>
+
+        <div id="bgPop" class="fill-pop hidden">
+          <div id="bgListView">
+            <div class="pop-label">纯色</div>
+            <div class="swatches" id="bgSolidSwatches"></div>
+            <div id="bgCustomSolidRow" class="custom-row hidden">
+              <input type="color" id="bgCustomSolid" value="#ffffff">
+              <span class="custom-hint">自定义颜色</span>
+            </div>
+            <div class="pop-divider"></div>
+            <div class="pop-label">渐变</div>
+            <div class="swatches" id="bgGradientSwatches"></div>
+          </div>
+
+          <div id="bgGradView" class="hidden">
+            <div class="grad-head">
+              <button type="button" id="bgBack" class="back-btn" title="返回" aria-label="返回">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M19 12H5"/>
+                  <path d="M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <span class="pop-label" style="margin:0">自定义渐变</span>
+            </div>
+            <div id="bgGradPreview" class="grad-preview"></div>
+            <div class="grad-colors">
+              <label class="grad-color">
+                <input type="color" id="bgGradColor1" value="#4c9aff" aria-label="颜色 1">
+                <span>颜色 1</span>
+              </label>
+              <label class="grad-color">
+                <input type="color" id="bgGradColor2" value="#a78bfa" aria-label="颜色 2">
+                <span>颜色 2</span>
+              </label>
+            </div>
+            <div class="pop-divider"></div>
+            <div class="grad-dir">
+              <div class="pop-label">方向 <span id="bgAngleVal" class="val">90&deg;</span></div>
+              <input type="range" id="bgAngle" min="0" max="330" step="30" value="90">
+            </div>
+          </div>
+        </div>
+      </div>
+      <span class="gen-actions">
+        <button id="genCopy" class="primary">复制图片</button>
+        <button id="genDownload" class="primary">下载图片</button>
+      </span>
+      <textarea id="genInput" rows="2"
+        placeholder="输入文字&hellip;  用 #文字# 让它变紫"></textarea>
+    </div>
+    <div class="gen-stage">
+      <div id="genFrame" class="gen-frame hidden">
+        <img id="genImg" alt="模板图片">
+        <svg id="genOverlay" class="overlay" aria-hidden="true"></svg>
+        <div id="genText" class="gen-text"><div id="genInner" class="gen-inner"></div></div>
+        <img id="genOvImg" class="ov-img" alt="叠加图" draggable="false">
+      </div>
+      <div id="genEmpty" class="empty">选择一个模板，文字将生成到选区。</div>
+    </div>
+  </div>
+
+  <div id="toasts"></div>
+  <div id="confirmTip" class="confirm-tip" hidden></div>
+
+<script src="store.js"></script>
+<script src="overlay.js"></script>
+<script src="zip.js"></script>
+<script src="defaults.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // ---------- elements ----------
+  var img = document.getElementById("pic");
+  var overlay = document.getElementById("overlay");
+  var nameInput = document.getElementById("name");
+  var toastsEl = document.getElementById("toasts");
+  var editorSubbar = document.getElementById("editor-subbar");
+  var editorBack = document.getElementById("editorBack");
+
+  var confirmTip = document.getElementById("confirmTip");
+
+  var tplControl = document.getElementById("tplControl");
+  var tplTrigger = document.getElementById("tplTrigger");
+  var tplTriggerThumb = document.getElementById("tplTriggerThumb");
+  var tplTriggerName = document.getElementById("tplTriggerName");
+  var tplPop = document.getElementById("tplPop");
+  var tplGrid = document.getElementById("tplGrid");
+  var tplEmpty = document.getElementById("tplEmpty");
+  var tplTriggerUrl = null;
+  var tplUrls = [];
+  var tplGen = 0;
+  var genGen = 0;
+  var genFont = document.getElementById("genFont");
+  var genFontVal = document.getElementById("genFontVal");
+  var genInput = document.getElementById("genInput");
+  var genFrame = document.getElementById("genFrame");
+  var genImg = document.getElementById("genImg");
+  var genOverlay = document.getElementById("genOverlay");
+  var genText = document.getElementById("genText");
+  var genInner = document.getElementById("genInner");
+  var genEmpty = document.getElementById("genEmpty");
+  var genAngle = document.getElementById("genAngle");
+  var genAngleVal = document.getElementById("genAngleVal");
+  var genDownload = document.getElementById("genDownload");
+  var genCopy = document.getElementById("genCopy");
+  var genOverwrite = document.getElementById("genOverwrite");
+  var genRotate = document.getElementById("genRotate");
+  var genMirrorH = document.getElementById("genMirrorH");
+  var genMirrorV = document.getElementById("genMirrorV");
+  var editorRotate = document.getElementById("editorRotate");
+  var editorMirrorH = document.getElementById("editorMirrorH");
+  var editorMirrorV = document.getElementById("editorMirrorV");
+  var ovImg = document.getElementById("ovImg");
+  var ovBox = document.getElementById("ovBox");
+  var ovFile = document.getElementById("ovFile");
+  var ovRemove = document.getElementById("ovRemove");
+  var genOvImg = document.getElementById("genOvImg");
+
+  var tplImportFile = document.getElementById("tplImportFile");
+  var ppImport = document.getElementById("ppImport");
+  var ppExport = document.getElementById("ppExport");
+  var ppDelete = document.getElementById("ppDelete");
+  var ppSelectAll = document.getElementById("ppSelectAll");
+
+  var fillControl = document.getElementById("fillControl");
+  var fillTrigger = document.getElementById("fillTrigger");
+  var fillPreview = document.getElementById("fillPreview");
+  var fillPop = document.getElementById("fillPop");
+  var fillListView = document.getElementById("fillListView");
+  var fillGradView = document.getElementById("fillGradView");
+  var solidSwatches = document.getElementById("solidSwatches");
+  var gradientSwatches = document.getElementById("gradientSwatches");
+  var customSolidRow = document.getElementById("customSolidRow");
+  var customSolid = document.getElementById("customSolid");
+  var gradPreview = document.getElementById("gradPreview");
+  var gradColor1 = document.getElementById("gradColor1");
+  var gradColor2 = document.getElementById("gradColor2");
+  var gradBack = document.getElementById("gradBack");
+
+  var bgControl = document.getElementById("bgControl");
+  var bgTrigger = document.getElementById("bgTrigger");
+  var bgPreview = document.getElementById("bgPreview");
+  var bgPop = document.getElementById("bgPop");
+  var bgListView = document.getElementById("bgListView");
+  var bgGradView = document.getElementById("bgGradView");
+  var bgSolidSwatches = document.getElementById("bgSolidSwatches");
+  var bgGradientSwatches = document.getElementById("bgGradientSwatches");
+  var bgCustomSolidRow = document.getElementById("bgCustomSolidRow");
+  var bgCustomSolid = document.getElementById("bgCustomSolid");
+  var bgGradPreview = document.getElementById("bgGradPreview");
+  var bgGradColor1 = document.getElementById("bgGradColor1");
+  var bgGradColor2 = document.getElementById("bgGradColor2");
+  var bgAngle = document.getElementById("bgAngle");
+  var bgAngleVal = document.getElementById("bgAngleVal");
+  var bgBack = document.getElementById("bgBack");
+
+  // ---------- state ----------
+  var natW = 0, natH = 0;
+  var points = [];
+  var dragIndex = -1;
+  var pendingDefault = false;
+
+  var imageBlob = null;      // newly uploaded image not yet stored
+  var imageHash = null;      // content hash of the stored image
+  var imageDataUrl = null;   // legacy carry-over, migrated on next save
+  var imageSrc = ""; // 外部图片引用（如 http 路径）
+  var imageName = "";
+
+  var editingId = null;
+  var editingCreatedAt = null;
+  var objectUrl = null;
+  var editorGen = 0;
+
+  // editor overlay image (optional, saved with the template)
+  var ov = null;          // { blob, hash, src, name, x, y, w, h, url }
+  var ovObjectUrl = null;
+  var ovDrag = null;
+  var genOvSrc = null;
+  var genOvObjectUrl = null;
+
+  // generate-tab state. textStyle keeps room for future font controls; only
+  // fontSize is exposed in the UI for now.
+  var genRecords = [];
+  var genRecord = null;
+  var genPoints = [];
+  var genObjectUrl = null;
+  var selectedIds = {};
+  var textStyle = {
+    fontSize: 48,
+    fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+    fontWeight: "700",
+    lineHeight: 1.15,
+    fill: "solid",          // "solid" | "gradient"
+    color: "#000000",
+    gradient: { from: "#ffffff", to: "#4c9aff", angle: 0 }
+  };
+  // text background; drawn per text row (fills the row, not the whole region)
+  var bgStyle = {
+    fill: "none",           // "none" | "solid" | "gradient"
+    color: "#ffffff",
+    gradient: { from: "#4c9aff", to: "#a78bfa", angle: 90 }
+  };
+
+  // ---------- helpers ----------
+  function dismissToast(el) {
+    if (!el || el._closing) { return; }
+    el._closing = true;
+    clearTimeout(el._t);
+    el.classList.remove("show");
+    setTimeout(function () {
+      if (el.parentNode) { el.parentNode.removeChild(el); }
+    }, 220);
+  }
+  function toast(msg, type) {
+    var el = document.createElement("div");
+    el.className = "toast " + (type || "info");
+    var msgEl = document.createElement("span");
+    msgEl.className = "toast-msg";
+    msgEl.textContent = msg;
+    var bar = document.createElement("span");
+    bar.className = "toast-bar";
+    el.appendChild(msgEl);
+    el.appendChild(bar);
+    el.addEventListener("contextmenu", function (e) { e.preventDefault(); dismissToast(el); });
+    // newest on top; older ones get pushed down
+    toastsEl.insertBefore(el, toastsEl.firstChild);
+    // keep at most 4 visible
+    while (toastsEl.children.length > 4) {
+      var old = toastsEl.lastChild;
+      clearTimeout(old._t);
+      if (old.parentNode) { old.parentNode.removeChild(old); }
+    }
+    void el.offsetWidth; // let it lay out before animating in
+    el.classList.add("show");
+    el._t = setTimeout(function () { dismissToast(el); }, 5000);
+  }
+
+  function displayToImage(clientX, clientY) {
+    var r = img.getBoundingClientRect();
+    var sx = r.width ? natW / r.width : 1;
+    var sy = r.height ? natH / r.height : 1;
+    var x = (clientX - r.left) * sx;
+    var y = (clientY - r.top) * sy;
+    if (x < 0) { x = 0; } else if (x > natW) { x = natW; }
+    if (y < 0) { y = 0; } else if (y > natH) { y = natH; }
+    return { x: x, y: y };
+  }
+
+  // keep the polygon simple: if edges cross, reorder to the outer (convex) shape
+  function signedArea(pts) {
+    var a = 0;
+    for (var i = 0; i < pts.length; i++) {
+      var j = (i + 1) % pts.length;
+      a += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
+    }
+    return a / 2;
+  }
+  function segmentsCross(a, b, c, d) {
+    function orient(p, q, r) {
+      var v = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+      if (Math.abs(v) < 1e-9) { return 0; }
+      return v > 0 ? 1 : 2;
+    }
+    return orient(a, b, c) !== orient(a, b, d) && orient(c, d, a) !== orient(c, d, b);
+  }
+  function isSelfIntersecting(pts) {
+    if (pts.length < 4) { return false; }
+    return segmentsCross(pts[0], pts[1], pts[2], pts[3]) ||
+           segmentsCross(pts[1], pts[2], pts[3], pts[0]);
+  }
+  function normalizePoints(pts) {
+    var cx = 0, cy = 0;
+    pts.forEach(function (p) { cx += p.x; cy += p.y; });
+    cx /= pts.length; cy /= pts.length;
+    var sorted = pts.slice().sort(function (a, b) {
+      return Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx);
+    });
+    if (signedArea(sorted) < 0) { sorted.reverse(); }
+    var start = 0, best = Infinity;
+    for (var i = 0; i < sorted.length; i++) {
+      var s = sorted[i].x + sorted[i].y;
+      if (s < best) { best = s; start = i; }
+    }
+    return sorted.slice(start).concat(sorted.slice(0, start));
+  }
+  function fixCrossing(pts) {
+    return isSelfIntersecting(pts) ? normalizePoints(pts) : pts;
+  }
+
+  // inner 1/9 of the image (center cell of a 3x3 grid)
+  function defaultPoints() {
+    return [
+      { x: natW / 3,     y: natH / 3 },
+      { x: natW * 2 / 3, y: natH / 3 },
+      { x: natW * 2 / 3, y: natH * 2 / 3 },
+      { x: natW / 3,     y: natH * 2 / 3 }
+    ];
+  }
+
+  // ---------- editor rendering ----------
+  function render() {
+    window.renderOverlay(overlay, natW, natH, points, { handles: true });
+    updateOvImg();
+  }
+
+  function clearOvUrl() {
+    if (ovObjectUrl) { URL.revokeObjectURL(ovObjectUrl); ovObjectUrl = null; }
+  }
+  function updateOvImg() {
+    if (!ov || !natW || !img.clientWidth) { ovBox.classList.add("hidden"); return; }
+    var s = img.clientWidth / natW;
+    ovBox.classList.remove("hidden");
+    ovBox.style.left = (ov.x * s) + "px";
+    ovBox.style.top = (ov.y * s) + "px";
+    ovBox.style.width = (ov.w * s) + "px";
+    ovBox.style.height = (ov.h * s) + "px";
+    if (ov.url && ovImg.getAttribute("src") !== ov.url) { ovImg.src = ov.url; }
+  }
+  function setOverlayFile(file) {
+    if (!file) { return; }
+    if (!/^image\//.test(file.type)) { toast("这不是图片文件", "warning"); return; }
+    var u = URL.createObjectURL(file);
+    var probe = new Image();
+    probe.onload = function () {
+      var nw = probe.naturalWidth || 1, nh = probe.naturalHeight || 1;
+      if (ovObjectUrl) { URL.revokeObjectURL(ovObjectUrl); }
+      ovObjectUrl = u;
+      var w = nw;
+      var h = nh;
+      ov = { blob: file, hash: null, src: null, name: file.name,
+        x: Math.max(0, (natW - w) / 2), y: Math.max(0, (natH - h) / 2),
+        w: w, h: h, url: u };
+      render();
+    };
+    probe.onerror = function () { URL.revokeObjectURL(u); toast("叠加图加载失败", "error"); };
+    probe.src = u;
+  }
+  ovFile.addEventListener("change", function (e) {
+    setOverlayFile(e.target.files && e.target.files[0]);
+    e.target.value = "";
+  });
+  ovRemove.addEventListener("click", function () {
+    clearOvUrl();
+    ov = null;
+    ovImg.removeAttribute("src");
+    render();
+  });
+  ovImg.addEventListener("pointerdown", function (e) {
+    if (!ov || e.button !== 0) { return; }
+    var r = img.getBoundingClientRect();
+    ovDrag = { sx: e.clientX, sy: e.clientY, ox: ov.x, oy: ov.y, s: r.width ? natW / r.width : 1 };
+    ovImg.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  ovImg.addEventListener("pointermove", function (e) {
+    if (!ovDrag) { return; }
+    ov.x = Math.max(0, Math.min(natW - ov.w, ovDrag.ox + (e.clientX - ovDrag.sx) * ovDrag.s));
+    ov.y = Math.max(0, Math.min(natH - ov.h, ovDrag.oy + (e.clientY - ovDrag.sy) * ovDrag.s));
+    updateOvImg();
+  });
+  ovImg.addEventListener("pointerup", function (e) {
+    if (!ovDrag) { return; }
+    ovDrag = null;
+    try { ovImg.releasePointerCapture(e.pointerId); } catch (_) {}
+  });
+
+  // ---------- pointer interaction ----------
+  overlay.addEventListener("pointerdown", function (e) {
+    var idx = e.target && e.target.getAttribute && e.target.getAttribute("data-index");
+    if (idx === null || idx === undefined) { return; }
+    dragIndex = parseInt(idx, 10);
+    overlay.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  overlay.addEventListener("pointermove", function (e) {
+    if (dragIndex < 0) { return; }
+    points[dragIndex] = displayToImage(e.clientX, e.clientY);
+    render();
+  });
+  overlay.addEventListener("pointerup", function (e) {
+    if (dragIndex < 0) { return; }
+    dragIndex = -1;
+    try { overlay.releasePointerCapture(e.pointerId); } catch (_) {}
+    points = fixCrossing(points);
+    render();
+  });
+  // keep the preview area sized to the space below the menu bar
+  var headerEl = document.querySelector("header");
+  function measureHeader() {
+    if (headerEl) {
+      document.documentElement.style.setProperty("--header-h", headerEl.offsetHeight + "px");
+    }
+  }
+  measureHeader();
+  window.addEventListener("load", measureHeader);
+  window.addEventListener("resize", function () { measureHeader(); render(); renderGen(); });
+
+  // ---------- image loading ----------
+  function setImage(blob, src, name, keepPoints) {
+    if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
+    imageBlob = blob || null;
+    imageHash = null;
+    imageDataUrl = null;
+    imageSrc = blob ? null : src;
+    imageName = name || (src ? String(src).split("/").pop() : "image");
+    pendingDefault = !keepPoints;
+    if (blob) {
+      objectUrl = URL.createObjectURL(blob);
+      img.src = objectUrl;
+    } else {
+      img.src = src;
+    }
+  }
+
+  function loadFile(file) {
+    if (!file) { return; }
+    if (!/^image\//.test(file.type)) { toast("这不是图片文件", "warning"); return; }
+    // keep the existing selection when replacing the image of a template being edited
+    setImage(file, null, file.name, !!editingId);
+    switchTab("editor");
+  }
+
+  img.addEventListener("load", function () {
+    natW = img.naturalWidth;
+    natH = img.naturalHeight;
+    if (pendingDefault) {
+      points = defaultPoints();
+      pendingDefault = false;
+    } else {
+      points = points.map(function (p) {
+        return { x: Math.max(0, Math.min(natW, p.x)), y: Math.max(0, Math.min(natH, p.y)) };
+      });
+    }
+    render();
+  });
+  img.addEventListener("error", function () {
+    natW = 1920; natH = 1080;
+    points = [];
+    render();
+    toast("图片加载失败", "error");
+  });
+
+  document.getElementById("file").addEventListener("change", function (e) {
+    loadFile(e.target.files && e.target.files[0]);
+    e.target.value = "";
+  });
+
+  ["dragenter", "dragover"].forEach(function (type) {
+    window.addEventListener(type, function (e) {
+      e.preventDefault();
+      document.body.style.outline = "2px dashed #4c9aff";
+      document.body.style.outlineOffset = "-6px";
+    });
+  });
+  ["dragleave", "drop"].forEach(function (type) {
+    window.addEventListener(type, function (e) {
+      e.preventDefault();
+      if (type === "dragleave" && e.relatedTarget) { return; }
+      document.body.style.outline = "";
+    });
+  });
+  window.addEventListener("drop", function (e) {
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) { loadFile(f); }
+  });
+
+  // ---------- point transforms: reassign which coordinate sits at each corner ----------
+  // Keeps the same four coordinates (so the outline is unchanged) but permutes the
+  // slots, which changes how the text is mapped. Saved with the template as-is.
+  function transformPoints(pts, kind) {
+    var p = pts;
+    if (p.length !== 4) { return p; }
+    if (kind === "rotate") { return [p[1], p[2], p[3], p[0]]; }   // clockwise, matching the icon
+    if (kind === "mirrorH") { return [p[1], p[0], p[3], p[2]]; }  // swap 1<->2, 3<->4
+    if (kind === "mirrorV") { return [p[3], p[2], p[1], p[0]]; }  // swap 1<->4, 2<->3
+    return p;
+  }
+
+  editorRotate.addEventListener("click", function () { points = transformPoints(points, "rotate"); render(); });
+  editorMirrorH.addEventListener("click", function () { points = transformPoints(points, "mirrorH"); render(); });
+  editorMirrorV.addEventListener("click", function () { points = transformPoints(points, "mirrorV"); render(); });
+
+  function markInvalid() {
+    nameInput.classList.add("invalid");
+    nameInput.focus();
+    setTimeout(function () { nameInput.classList.remove("invalid"); }, 1600);
+  }
+
+  editorBack.addEventListener("click", function () { switchTab("generate"); });
+
+  document.getElementById("save").addEventListener("click", function () {
+    if (!natW || !natH) { toast("请先上传图片", "warning"); return; }
+    var name = (nameInput.value || "").trim();
+    if (!name) { toast("保存前请先填写模板名", "warning"); markInvalid(); return; }
+    window.Store.list().then(function (all) {
+      var lower = name.toLowerCase();
+      var dup = all.some(function (r) {
+        return r.id !== editingId && (r.name || "").trim().toLowerCase() === lower;
+      });
+      if (dup) { toast("已存在同名模板 \u201c" + name + "\u201d", "warning"); markInvalid(); return; }
+      var now = Date.now();
+      points = fixCrossing(points);
+      var record = {
+        id: editingId || window.Store.newId(),
+        name: name,
+        width: natW,
+        height: natH,
+        points: points.map(function (p) { return { x: Math.round(p.x), y: Math.round(p.y) }; }),
+        imageHash: imageHash,
+        imageDataUrl: imageBlob ? null : imageDataUrl,
+        imageSrc: (imageHash || imageBlob || imageDataUrl) ? null : imageSrc,
+        imageName: imageName,
+        overlay: ov ? {
+          hash: ov.hash, imageSrc: ov.src, imageName: ov.name,
+          x: Math.round(ov.x), y: Math.round(ov.y), w: Math.round(ov.w), h: Math.round(ov.h)
+        } : null,
+        createdAt: editingCreatedAt || now,
+        updatedAt: now
+      };
+      window.Store.put(record, imageBlob, ov ? ov.blob : null).then(function (saved) {
+        imageHash = saved.imageHash;
+        imageBlob = null;
+        imageDataUrl = null;
+        if (saved.overlay && ov) { ov.hash = saved.overlay.hash; ov.blob = null; ov.src = null; }
+        editingId = record.id;
+        editingCreatedAt = record.createdAt;
+        nameInput.value = record.name;
+        render();
+        toast("模板已保存");
+        switchTab("generate");
+      }, function (err) {
+        toast(err && err.message ? err.message : "保存失败", "error");
+        if (window.console) { console.error(err); }
+      });
+    }, function () {
+      toast("读取模板失败", "error");
+    });
+  });
+
+  // ---------- template picker cards ----------
+  function newTemplate() {
+    loadDefault();
+    switchTab("editor");
+  }
+
+  var PENCIL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/>' +
+    '<path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+  var TRASH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/>' +
+    '<path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>' +
+    '<path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/>' +
+    '<path d="M10 11v6M14 11v6"/></svg>';
+  var COPY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round">' +
+    '<rect x="9" y="9" width="11" height="11" rx="1"/>' +
+    '<path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>';
+
+  function uniqueName(base) {
+    var names = {};
+    genRecords.forEach(function (r) { names[(r.name || "").trim().toLowerCase()] = true; });
+    var name = base, n = 2;
+    while (names[name.toLowerCase()]) { name = base + " (" + n + ")"; n++; }
+    return name;
+  }
+
+  function duplicateRecord(record) {
+    var copy = Object.assign({}, record);
+    copy.id = window.Store.newId();
+    copy.name = uniqueName((record.name || "Untitled") + " copy");
+    copy.points = (record.points || []).map(function (p) { return { x: p.x, y: p.y }; });
+    copy.overlay = record.overlay ? Object.assign({}, record.overlay) : null;
+    copy.createdAt = Date.now();
+    copy.updatedAt = Date.now();
+    window.Store.put(copy).then(function () {
+      toast("模板已复制");
+      populateGenSelect();
+    }, function (err) {
+      toast((err && err.message) || "复制失败", "error");
+    });
+  }
+
+  function buildPickerCard(record, gen) {
+    var card = document.createElement("div");
+    card.className = "tpl-card";
+    card.setAttribute("data-id", record.id);
+    card.addEventListener("click", function () {
+      loadGenRecord(record.id);
+      closeTplPop();
+    });
+
+    var thumb = document.createElement("span");
+    thumb.className = "thumb";
+    var im = document.createElement("img");
+    im.alt = record.name || "模板";
+    window.Store.imageURL(record).then(function (src) {
+      if (gen !== tplGen) { return; }
+      if (src.indexOf("blob:") === 0) { tplUrls.push(src); }
+      im.src = src;
+    }, function () { /* leave broken */ });
+    thumb.appendChild(im);
+
+    var foot = document.createElement("div");
+    foot.className = "tpl-foot";
+
+    var check = document.createElement("input");
+    check.type = "checkbox";
+    check.className = "tpl-checkbox";
+    check.checked = !!selectedIds[record.id];
+    check.title = "选择";
+    check.addEventListener("click", function (e) { e.stopPropagation(); });
+    check.addEventListener("change", function () {
+      if (check.checked) { selectedIds[record.id] = true; } else { delete selectedIds[record.id]; }
+      updateSelectionUI();
+    });
+
+    var name = document.createElement("span");
+    name.className = "tpl-name";
+    name.textContent = record.name || "Untitled";
+
+    var edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "tpl-icon";
+    edit.title = "编辑";
+    edit.innerHTML = PENCIL_SVG;
+    edit.addEventListener("click", function (e) { e.stopPropagation(); closeTplPop(); editRecord(record); });
+
+    var dup = document.createElement("button");
+    dup.type = "button";
+    dup.className = "tpl-icon";
+    dup.title = "复制";
+    dup.innerHTML = COPY_SVG;
+    dup.addEventListener("click", function (e) { e.stopPropagation(); duplicateRecord(record); });
+
+    var del = document.createElement("button");
+    del.type = "button";
+    del.className = "tpl-icon danger";
+    del.title = "删除";
+    del.setAttribute("data-confirm", "再次点击删除该模板");
+    del.innerHTML = TRASH_SVG;
+    del.addEventListener("click", function (e) { e.stopPropagation(); armDelete(record, del); });
+
+    foot.appendChild(check);
+    foot.appendChild(name);
+    foot.appendChild(dup);
+    foot.appendChild(edit);
+    foot.appendChild(del);
+    card.appendChild(thumb);
+    card.appendChild(foot);
+    return card;
+  }
+
+  function buildPickerAddCard() {
+    var card = document.createElement("button");
+    card.type = "button";
+    card.className = "tpl-card add";
+    card.innerHTML =
+      '<span class="add-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>' +
+      '<span class="add-label">添加模板</span>';
+    card.addEventListener("click", function () { closeTplPop(); newTemplate(); });
+    return card;
+  }
+
+  function editRecord(record) {
+    editingId = record.id;
+    editingCreatedAt = record.createdAt;
+    nameInput.value = record.name || "";
+    points = fixCrossing((record.points || []).slice());
+    natW = record.width;
+    natH = record.height;
+    imageBlob = record.imageBlob || null;     // legacy: re-hash on next save
+    imageHash = record.imageHash || null;
+    imageSrc = (imageHash || imageBlob || record.imageDataUrl) ? null : (record.imageSrc || "");
+    imageName = record.imageName || "image";
+    pendingDefault = false; // keep the stored selection
+    switchTab("editor");
+    var gen = ++editorGen;
+    clearOvUrl();
+    if (record.overlay) {
+      ov = { blob: null, hash: record.overlay.hash || null, src: record.overlay.imageSrc || null,
+        name: record.overlay.imageName || "overlay", x: record.overlay.x || 0, y: record.overlay.y || 0,
+        w: record.overlay.w || 0, h: record.overlay.h || 0, url: null };
+      window.Store.imageURL({ imageHash: ov.hash, imageSrc: ov.src }).then(function (u) {
+        if (gen !== editorGen || !ov) { return; }
+        if (u.indexOf("blob:") === 0) { ovObjectUrl = u; }
+        ov.url = u;
+        updateOvImg();
+      });
+    } else {
+      ov = null;
+      ovImg.removeAttribute("src");
+      ovBox.classList.add("hidden");
+    }
+    window.Store.imageURL(record).then(function (src) {
+      if (gen !== editorGen) { return; }
+      if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
+      if (src.indexOf("blob:") === 0) { objectUrl = src; }
+      img.src = src;
+    }, function () { toast("无法加载图片", "error"); });
+  }
+
+  var armedBtn = null;
+
+  function placeConfirmTip() {
+    if (!armedBtn) { return; }
+    var r = armedBtn.getBoundingClientRect();
+    var t = confirmTip.getBoundingClientRect();
+    var left = r.left + r.width / 2 - t.width / 2;
+    var top = r.top - t.height - 9;
+    if (top < 8) { top = r.bottom + 9; }
+    var maxLeft = window.innerWidth - t.width - 8;
+    if (left < 8) { left = 8; }
+    if (left > maxLeft) { left = maxLeft; }
+    confirmTip.style.left = left + "px";
+    confirmTip.style.top = top + "px";
+  }
+
+  function showConfirmTip(btn) {
+    armedBtn = btn;
+    confirmTip.textContent = btn.getAttribute("data-confirm") || "Are you sure?";
+    confirmTip.hidden = false;
+    placeConfirmTip();
+  }
+
+  function hideConfirmTip() {
+    armedBtn = null;
+    confirmTip.hidden = true;
+  }
+
+  function armDelete(record, btn) {
+    if (btn.classList.contains("armed")) {
+      btn.classList.remove("armed");
+      clearTimeout(btn._armTimer);
+      hideConfirmTip();
+      removeRecord(record);
+      return;
+    }
+    disarmDelete(btn);
+    btn.classList.add("armed");
+    clearTimeout(btn._armTimer);
+    btn._armTimer = setTimeout(function () {
+      btn.classList.remove("armed");
+      if (armedBtn === btn) { hideConfirmTip(); }
+    }, 4000);
+    showConfirmTip(btn);
+  }
+
+  function disarmDelete(except) {
+    var keepArmed = false;
+    Array.prototype.forEach.call(document.querySelectorAll("button.armed"), function (b) {
+      if (b !== except) {
+        b.classList.remove("armed");
+        clearTimeout(b._armTimer);
+      } else {
+        keepArmed = true;
+      }
+    });
+    if (!keepArmed) { hideConfirmTip(); }
+  }
+
+  function removeRecord(record) {
+    window.Store.remove(record.id).then(function () {
+      if (editingId === record.id) {
+        editingId = null;
+        editingCreatedAt = null;
+      }
+      toast("模板已删除");
+      populateGenSelect();
+    }, function () {
+      toast("删除失败", "error");
+    });
+  }
+
+  // ---------- generate: map text onto the selected region ----------
+  function dist(a, b) {
+    var dx = a.x - b.x, dy = a.y - b.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  // Homography helpers (maps a source rectangle onto an arbitrary polygon).
+  function adj(m) {
+    return [
+      m[4]*m[8]-m[5]*m[7], m[2]*m[7]-m[1]*m[8], m[1]*m[5]-m[2]*m[4],
+      m[5]*m[6]-m[3]*m[8], m[0]*m[8]-m[2]*m[6], m[2]*m[3]-m[0]*m[5],
+      m[3]*m[7]-m[4]*m[6], m[1]*m[6]-m[0]*m[7], m[0]*m[4]-m[1]*m[3]
+    ];
+  }
+  function multmm(a, b) {
+    var c = [];
+    for (var i = 0; i < 3; i++) {
+      for (var j = 0; j < 3; j++) {
+        var s = 0;
+        for (var k = 0; k < 3; k++) { s += a[i * 3 + k] * b[k * 3 + j]; }
+        c[i * 3 + j] = s;
+      }
+    }
+    return c;
+  }
+  function multmv(m, v) {
+    return [
+      m[0]*v[0] + m[1]*v[1] + m[2]*v[2],
+      m[3]*v[0] + m[4]*v[1] + m[5]*v[2],
+      m[6]*v[0] + m[7]*v[1] + m[8]*v[2]
+    ];
+  }
+  function basisToPoints(x1, y1, x2, y2, x3, y3, x4, y4) {
+    var m = [x1, x2, x3, y1, y2, y3, 1, 1, 1];
+    var v = multmv(adj(m), [x4, y4, 1]);
+    return multmm(m, [v[0], 0, 0, 0, v[1], 0, 0, 0, v[2]]);
+  }
+  function general2DProjection(x1s, y1s, x1d, y1d, x2s, y2s, x2d, y2d,
+                               x3s, y3s, x3d, y3d, x4s, y4s, x4d, y4d) {
+    var s = basisToPoints(x1s, y1s, x2s, y2s, x3s, y3s, x4s, y4s);
+    var d = basisToPoints(x1d, y1d, x2d, y2d, x3d, y3d, x4d, y4d);
+    var m = multmm(d, adj(s));
+    for (var i = 0; i < 9; i++) { m[i] /= m[8]; }
+    return m;
+  }
+  function perspectiveTransform(width, height, q) {
+    // q in order: top-left, top-right, bottom-right, bottom-left
+    var m = general2DProjection(
+      0, 0, q[0].x, q[0].y,
+      width, 0, q[1].x, q[1].y,
+      0, height, q[3].x, q[3].y,
+      width, height, q[2].x, q[2].y
+    );
+    var vals = [
+      m[0], m[3], 0, m[6],
+      m[1], m[4], 0, m[7],
+      0, 0, 1, 0,
+      m[2], m[5], 0, m[8]
+    ];
+    for (var i = 0; i < vals.length; i++) {
+      if (!isFinite(vals[i])) {
+        return "matrix3d(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)";
+      }
+    }
+    return "matrix3d(" + vals.join(",") + ")";
+  }
+
+  function markActiveCard(id) {
+    Array.prototype.forEach.call(tplGrid.querySelectorAll(".tpl-card"), function (c) {
+      c.classList.toggle("active", c.getAttribute("data-id") === id);
+    });
+  }
+
+  function updateTplTrigger() {
+    if (tplTriggerUrl) { URL.revokeObjectURL(tplTriggerUrl); tplTriggerUrl = null; }
+    if (!genRecord) {
+      tplTriggerName.textContent = "没有模板";
+      tplTriggerThumb.style.display = "none";
+      tplTriggerThumb.removeAttribute("src");
+      return;
+    }
+    var rec = genRecord;
+    tplTriggerName.textContent = rec.name || "Untitled";
+    window.Store.imageURL(rec).then(function (u) {
+      if (genRecord !== rec) { return; }
+      if (tplTriggerUrl) { URL.revokeObjectURL(tplTriggerUrl); tplTriggerUrl = null; }
+      if (u.indexOf("blob:") === 0) { tplTriggerUrl = u; }
+      tplTriggerThumb.style.display = "";
+      tplTriggerThumb.src = u;
+    });
+  }
+
+  function populateGenSelect() {
+    return window.Store.list().then(function (all) {
+      genRecords = all;
+      var prev = genRecord ? genRecord.id : null;
+      var gen = ++tplGen;
+      tplUrls.forEach(function (u) { URL.revokeObjectURL(u); });
+      tplUrls = [];
+      // drop selections whose template no longer exists
+      var alive = {};
+      all.forEach(function (r) { alive[r.id] = true; });
+      Object.keys(selectedIds).forEach(function (id) { if (!alive[id]) { delete selectedIds[id]; } });
+
+      tplGrid.innerHTML = "";
+      tplEmpty.classList.toggle("hidden", all.length > 0);
+      all.forEach(function (r) { tplGrid.appendChild(buildPickerCard(r, gen)); });
+      tplGrid.appendChild(buildPickerAddCard());
+      updateSelectionUI();
+      markActiveCard(genRecord ? genRecord.id : null);
+
+      if (!all.length) {
+        genRecord = null;
+        genFrame.classList.add("hidden");
+        genEmpty.hidden = false;
+        updateTplTrigger();
+        return;
+      }
+      var pick = all[0].id;
+      if (prev) {
+        for (var i = 0; i < all.length; i++) {
+          if (all[i].id === prev) { pick = prev; break; }
+        }
+      }
+      loadGenRecord(pick);
+    }, function () {
+      toast("读取模板失败", "error");
+    });
+  }
+
+  function loadGenRecord(id) {
+    var rec = null;
+    for (var i = 0; i < genRecords.length; i++) {
+      if (genRecords[i].id === id) { rec = genRecords[i]; break; }
+    }
+    if (!rec) { return; }
+    genRecord = rec;
+    genPoints = fixCrossing((rec.points || []).slice()); // working copy, unsaved
+    var gen = ++genGen;
+    genFrame.classList.remove("hidden");
+    genEmpty.hidden = true;
+    markActiveCard(rec.id);
+    updateTplTrigger();
+    // resolve overlay image (if any)
+    if (genOvObjectUrl) { URL.revokeObjectURL(genOvObjectUrl); genOvObjectUrl = null; }
+    genOvSrc = null;
+    if (rec.overlay) {
+      window.Store.imageURL({ imageHash: rec.overlay.hash, imageSrc: rec.overlay.imageSrc }).then(function (u) {
+        if (gen !== genGen || genRecord !== rec) { return; }
+        genOvSrc = u;
+        if (u.indexOf("blob:") === 0) { genOvObjectUrl = u; }
+        renderGen();
+      });
+    }
+    window.Store.imageURL(rec).then(function (src) {
+      if (gen !== genGen || genRecord !== rec) { return; }
+      if (genObjectUrl) { URL.revokeObjectURL(genObjectUrl); genObjectUrl = null; }
+      if (src.indexOf("blob:") === 0) { genObjectUrl = src; }
+      genImg.src = src;
+      // render now if the image is already cached, otherwise the load event handles it
+      if (genImg.complete && genImg.naturalWidth) { renderGen(); }
+    });
+  }
+
+  function applyFill() {
+    if (textStyle.fill === "gradient") {
+      var g = textStyle.gradient;
+      genInner.style.backgroundImage =
+        "linear-gradient(" + g.angle + "deg, " + g.from + ", " + g.to + ")";
+      genInner.style.webkitBackgroundClip = "text";
+      genInner.style.backgroundClip = "text";
+      genInner.style.color = "transparent";
+      genInner.style.webkitTextFillColor = "transparent";
+    } else {
+      genInner.style.backgroundImage = "none";
+      genInner.style.webkitBackgroundClip = "";
+      genInner.style.backgroundClip = "";
+      genInner.style.color = textStyle.color;
+      genInner.style.webkitTextFillColor = "";
+    }
+  }
+
+  // fontStyle.fontSize is a maximum: shrink until the text fits the region
+  function textFits() {
+    return genInner.scrollHeight <= genText.clientHeight + 1 &&
+           genInner.scrollWidth <= genText.clientWidth + 1;
+  }
+  function fitText(maxPx) {
+    if (maxPx < 1) { maxPx = 1; }
+    genInner.style.fontSize = maxPx + "px";
+    if (textFits()) { return; }
+    var lo = 1, hi = maxPx;
+    for (var i = 0; i < 16; i++) {
+      var mid = (lo + hi) / 2;
+      genInner.style.fontSize = mid + "px";
+      if (textFits()) { lo = mid; } else { hi = mid; }
+    }
+    genInner.style.fontSize = lo + "px";
+  }
+
+  function renderGen() {
+    if (!genRecord || !genImg.clientWidth) { return; }
+    var scale = genImg.clientWidth / genRecord.width;
+    var pts = genPoints;
+    window.renderOverlay(genOverlay, genRecord.width, genRecord.height, pts,
+      { handles: true, strokeWidth: 1.5 });
+
+    var q = pts.map(function (p) {
+      return { x: p.x * scale, y: p.y * scale };
+    });
+    var w = (dist(q[0], q[1]) + dist(q[3], q[2])) / 2;
+    var h = (dist(q[0], q[3]) + dist(q[1], q[2])) / 2;
+    if (w < 1) { w = 1; }
+    if (h < 1) { h = 1; }
+
+    genText.style.width = w + "px";
+    genText.style.height = h + "px";
+    genText.style.transform = perspectiveTransform(w, h, q);
+
+    genInner.innerHTML = '<div class="gen-flow">' + formatText(genInput.value) + '</div>';
+    genInner.style.fontFamily = textStyle.fontFamily;
+    genInner.style.fontWeight = textStyle.fontWeight;
+    genInner.style.lineHeight = textStyle.lineHeight;
+    applyFill();
+
+    // overlay image on top
+    if (genRecord.overlay && genOvSrc) {
+      var o = genRecord.overlay;
+      genOvImg.style.display = "";
+      genOvImg.style.left = (o.x * scale) + "px";
+      genOvImg.style.top = (o.y * scale) + "px";
+      genOvImg.style.width = (o.w * scale) + "px";
+      genOvImg.style.height = (o.h * scale) + "px";
+      if (genOvImg.getAttribute("src") !== genOvSrc) { genOvImg.src = genOvSrc; }
+    } else {
+      genOvImg.style.display = "none";
+      genOvImg.removeAttribute("src");
+    }
+
+    if (!genInput.value) {
+      genText.style.display = "none";
+      return;
+    }
+    genText.style.display = "";
+    fitText(textStyle.fontSize * scale);
+  }
+
+  // ---------- popovers (escape the toolbar box) ----------
+  function placePopover(pop, trigger) {
+    var r = trigger.getBoundingClientRect();
+    var pr = pop.getBoundingClientRect();
+    var left = r.left;
+    var top = r.bottom + 10;
+    if (left + pr.width > window.innerWidth - 8) { left = window.innerWidth - pr.width - 8; }
+    if (left < 8) { left = 8; }
+    if (top + pr.height > window.innerHeight - 8) {
+      top = r.top - pr.height - 10;
+      if (top < 8) { top = 8; }
+    }
+    pop.style.left = left + "px";
+    pop.style.top = top + "px";
+  }
+
+  // ---------- template preview picker ----------
+  function openTplPop() {
+    tplPop.classList.remove("hidden");
+    placePopover(tplPop, tplTrigger);
+  }
+  function closeTplPop() { tplPop.classList.add("hidden"); }
+
+  tplTrigger.addEventListener("click", function () {
+    if (tplPop.classList.contains("hidden")) {
+      populateGenSelect().then(openTplPop, openTplPop);
+    } else {
+      closeTplPop();
+    }
+  });
+  tplPop.addEventListener("click", function (e) { e.stopPropagation(); });
+  document.addEventListener("click", function (e) {
+    if (!tplControl.contains(e.target)) { closeTplPop(); }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { closeTplPop(); }
+  });
+
+  genFont.addEventListener("input", function () {
+    textStyle.fontSize = parseInt(genFont.value, 10) || 48;
+    genFontVal.textContent = textStyle.fontSize;
+    renderGen();
+  });
+  // ---------- fill picker ----------
+  var SOLIDS = [
+    "#ffffff", "#000000", "#ff5c72", "#ffd23f", "#4c9aff", "#34d399",
+    "#a78bfa", "#f472b6", "#fb923c", "#22d3ee", "#94a3b8", "#facc15"
+  ];
+  var GRADIENTS = [
+    { from: "#4c9aff", to: "#a78bfa", angle: 90 },
+    { from: "#ff5c72", to: "#ffd23f", angle: 90 },
+    { from: "#f472b6", to: "#a78bfa", angle: 90 },
+    { from: "#fb923c", to: "#ff5c72", angle: 135 },
+    { from: "#ffffff", to: "#4c9aff", angle: 90 }
+  ];
+
+  function gradientCSS(g) {
+    return "linear-gradient(" + g.angle + "deg," + g.from + "," + g.to + ")";
+  }
+
+  function updateFillPreview() {
+    if (textStyle.fill === "gradient") {
+      var css = gradientCSS(textStyle.gradient);
+      fillPreview.style.background = css;
+      gradPreview.style.background = css;
+    } else {
+      fillPreview.style.background = textStyle.color;
+      gradPreview.style.background = gradientCSS(textStyle.gradient);
+    }
+  }
+
+  function applyAndPreview() {
+    applyFill();
+    renderGen();
+    updateFillPreview();
+  }
+
+  function selectSolid(color) {
+    textStyle.fill = "solid";
+    textStyle.color = color;
+    applyAndPreview();
+    closePopover();
+  }
+
+  function selectGradient(g) {
+    textStyle.fill = "gradient";
+    textStyle.gradient = { from: g.from, to: g.to, angle: g.angle };
+    genAngle.value = g.angle;
+    genAngleVal.textContent = g.angle + "\u00b0";
+    applyAndPreview();
+    closePopover();
+  }
+
+  function makeSwatch(kind, data) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "swatch";
+    if (kind === "solid") {
+      b.style.background = data;
+      b.title = data;
+      b.addEventListener("click", function () { selectSolid(data); });
+    } else {
+      b.style.background = gradientCSS(data);
+      b.title = "Gradient";
+      b.addEventListener("click", function () { selectGradient(data); });
+    }
+    return b;
+  }
+
+  function makePlus(title, onClick) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "swatch plus";
+    b.title = title;
+    b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+    b.addEventListener("click", onClick);
+    return b;
+  }
+
+  SOLIDS.forEach(function (c) { solidSwatches.appendChild(makeSwatch("solid", c)); });
+  solidSwatches.appendChild(makePlus("Custom colour", function () {
+    customSolidRow.classList.remove("hidden");
+    customSolid.click();
+  }));
+  GRADIENTS.forEach(function (g) { gradientSwatches.appendChild(makeSwatch("gradient", g)); });
+  gradientSwatches.appendChild(makePlus("Custom gradient", showGradView));
+
+  function showListView() {
+    fillListView.classList.remove("hidden");
+    fillGradView.classList.add("hidden");
+    if (!fillPop.classList.contains("hidden")) { placePopover(fillPop, fillTrigger); }
+  }
+  function showGradView() {
+    textStyle.fill = "gradient";
+    fillListView.classList.add("hidden");
+    fillGradView.classList.remove("hidden");
+    gradColor1.value = textStyle.gradient.from;
+    gradColor2.value = textStyle.gradient.to;
+    genAngle.value = textStyle.gradient.angle;
+    genAngleVal.textContent = textStyle.gradient.angle + "\u00b0";
+    applyAndPreview();
+    placePopover(fillPop, fillTrigger);
+  }
+  function openPopover() {
+    fillPop.classList.remove("hidden");
+    showListView();
+  }
+  function closePopover() {
+    fillPop.classList.add("hidden");
+    customSolidRow.classList.add("hidden");
+  }
+
+  fillTrigger.addEventListener("click", function () {
+    if (fillPop.classList.contains("hidden")) { openPopover(); } else { closePopover(); }
+  });
+  fillPop.addEventListener("click", function (e) { e.stopPropagation(); });
+  document.addEventListener("click", function (e) {
+    if (!fillControl.contains(e.target)) { closePopover(); }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { closePopover(); }
+  });
+  customSolid.addEventListener("input", function () {
+    textStyle.fill = "solid";
+    textStyle.color = customSolid.value;
+    applyAndPreview();
+  });
+  gradColor1.addEventListener("input", function () {
+    textStyle.gradient.from = gradColor1.value;
+    textStyle.fill = "gradient";
+    applyAndPreview();
+  });
+  gradColor2.addEventListener("input", function () {
+    textStyle.gradient.to = gradColor2.value;
+    textStyle.fill = "gradient";
+    applyAndPreview();
+  });
+  genAngle.addEventListener("input", function () {
+    textStyle.gradient.angle = parseInt(genAngle.value, 10) || 0;
+    genAngleVal.textContent = textStyle.gradient.angle + "\u00b0";
+    textStyle.fill = "gradient";
+    applyAndPreview();
+  });
+  gradBack.addEventListener("click", function () { showListView(); });
+
+  genInput.addEventListener("input", renderGen);
+  genImg.addEventListener("load", renderGen);
+  updateFillPreview();
+
+  // ---------- on-the-fly selection editing (unsaved until "Overwrite") ----------
+  var genDragIndex = -1;
+  function genToImage(clientX, clientY) {
+    var r = genImg.getBoundingClientRect();
+    var sx = r.width ? genRecord.width / r.width : 1;
+    var sy = r.height ? genRecord.height / r.height : 1;
+    var x = (clientX - r.left) * sx;
+    var y = (clientY - r.top) * sy;
+    if (x < 0) { x = 0; } else if (x > genRecord.width) { x = genRecord.width; }
+    if (y < 0) { y = 0; } else if (y > genRecord.height) { y = genRecord.height; }
+    return { x: x, y: y };
+  }
+  genOverlay.addEventListener("pointerdown", function (e) {
+    var idx = e.target && e.target.getAttribute && e.target.getAttribute("data-index");
+    if (idx === null || idx === undefined || !genRecord) { return; }
+    genDragIndex = parseInt(idx, 10);
+    genOverlay.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  genOverlay.addEventListener("pointermove", function (e) {
+    if (genDragIndex < 0) { return; }
+    genPoints[genDragIndex] = genToImage(e.clientX, e.clientY);
+    renderGen();
+  });
+  genOverlay.addEventListener("pointerup", function (e) {
+    if (genDragIndex < 0) { return; }
+    genDragIndex = -1;
+    try { genOverlay.releasePointerCapture(e.pointerId); } catch (_) {}
+    genPoints = fixCrossing(genPoints);
+    renderGen();
+  });
+
+  function genTransform(kind) {
+    if (!genRecord) { toast("请先选择一个模板", "warning"); return; }
+    genPoints = transformPoints(genPoints, kind);
+    renderGen();
+  }
+  genRotate.addEventListener("click", function () { genTransform("rotate"); });
+  genMirrorH.addEventListener("click", function () { genTransform("mirrorH"); });
+  genMirrorV.addEventListener("click", function () { genTransform("mirrorV"); });
+
+  genOverwrite.addEventListener("click", function () {
+    if (!genRecord) { toast("请先选择一个模板", "warning"); return; }
+    var rec = Object.assign({}, genRecord);
+    rec.points = genPoints.map(function (p) { return { x: Math.round(p.x), y: Math.round(p.y) }; });
+    rec.updatedAt = Date.now();
+    window.Store.put(rec).then(function (saved) {
+      genRecord = saved;
+      genPoints = (saved.points || []).slice();
+      toast("模板已更新");
+      populateGenSelect();
+    }, function (err) {
+      toast((err && err.message) || "覆写失败", "error");
+    });
+  });
+
+  // ---------- downloads ----------
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  // #text# renders the wrapped text in purple, overriding any gradient fill
+  var MARK_COLOR = "#817aff";
+  function formatText(text) {
+    return escapeHtml(text).replace(
+      /#(.+?)#/g,
+      '<span style="color:' + MARK_COLOR + ';-webkit-text-fill-color:' + MARK_COLOR + '">$1</span>'
+    );
+  }
+
+  function baseName(record) {
+    return ((record && record.name) || "template").replace(/[\\/:*?"<>|]+/g, "_");
+  }
+
+  function saveBlob(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+  }
+
+  function styleDecl() {
+    var d = "font-family:" + textStyle.fontFamily + ";" +
+      "font-weight:" + textStyle.fontWeight + ";" +
+      "line-height:" + textStyle.lineHeight + ";" +
+      "text-align:center;white-space:pre-wrap;word-break:break-word;";
+    if (textStyle.fill === "gradient") {
+      var g = textStyle.gradient;
+      d += "background-image:linear-gradient(" + g.angle + "deg," + g.from + "," + g.to + ");" +
+        "-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;";
+    } else {
+      d += "color:" + textStyle.color + ";";
+    }
+    return d;
+  }
+
+  // Build an SVG that reproduces the image + perspective-fitted text.
+  function buildExportSVG(record, href, displayFontPx, pts, ovHref) {
+    var W = record.width, H = record.height;
+    var scale = genImg.clientWidth ? genImg.clientWidth / W : 1;
+    var fontNat = displayFontPx / scale; // fitting is scale-invariant
+    var q = pts || fixCrossing(record.points);
+    var w = (dist(q[0], q[1]) + dist(q[3], q[2])) / 2;
+    var h = (dist(q[0], q[3]) + dist(q[1], q[2])) / 2;
+    if (w < 1) { w = 1; }
+    if (h < 1) { h = 1; }
+    var matrix = perspectiveTransform(w, h, q);
+
+    var inner = '<div style="display:flex;align-items:center;justify-content:center;' +
+      "width:" + w + "px;height:" + h + "px;font-size:" + fontNat + "px;" + styleDecl() + '">' +
+      '<div style="width:100%;">' + formatText(genInput.value) + "</div></div>";
+    var box = '<div style="position:absolute;left:0;top:0;transform-origin:0 0;transform:' +
+      matrix + ';">' + inner + "</div>";
+    var fo = '<foreignObject x="0" y="0" width="' + W + '" height="' + H + '">' +
+      '<div xmlns="http://www.w3.org/1999/xhtml" style="position:relative;width:' + W +
+      "px;height:" + H + 'px;overflow:hidden;">' + box + "</div></foreignObject>";
+
+    var overlay = "";
+    if (ovHref && record.overlay) {
+      var o = record.overlay;
+      overlay = '<image href="' + ovHref + '" x="' + o.x + '" y="' + o.y +
+        '" width="' + o.w + '" height="' + o.h + '" preserveAspectRatio="none"/>';
+    }
+
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H +
+      '" viewBox="0 0 ' + W + " " + H + '">' +
+      '<image href="' + href + '" x="0" y="0" width="' + W + '" height="' + H +
+      '" preserveAspectRatio="none"/>' + fo + overlay + "</svg>";
+  }
+
+  function rasterizeSvg(svg, W, H) {
+    return new Promise(function (resolve, reject) {
+      var image = new Image();
+      image.onload = function () {
+        try {
+          var canvas = document.createElement("canvas");
+          canvas.width = W;
+          canvas.height = H;
+          canvas.getContext("2d").drawImage(image, 0, 0);
+          canvas.toBlob(function (blob) {
+            if (blob) { resolve(blob); } else { reject(new Error("导出失败")); }
+          }, "image/png");
+        } catch (err) {
+          reject(err);
+        }
+      };
+      image.onerror = function () { reject(new Error("导出失败")); };
+      image.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    });
+  }
+
+  // blank white base image, used when the template's image bytes can't be read
+  function whiteDataUrl(w, h) {
+    var c = document.createElement("canvas");
+    c.width = w || 1920;
+    c.height = h || 1080;
+    var ctx = c.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, c.width, c.height);
+    return c.toDataURL("image/png");
+  }
+
+  function copyImageBlob(blob) {
+    if (navigator.clipboard && navigator.clipboard.write && window.ClipboardItem) {
+      try {
+        return navigator.clipboard.write([new window.ClipboardItem({ "image/png": blob })])
+          .then(function () { return true; }, function () { return false; });
+      } catch (_) { return Promise.resolve(false); }
+    }
+    return Promise.resolve(false);
+  }
+
+  // build the composited image once; resolves with { png: Blob|null, svg: string }
+  function buildGenImage() {
+    var W = genRecord.width, H = genRecord.height;
+    var displayFontPx = parseFloat(genInner.style.fontSize) || textStyle.fontSize;
+    var basePromise = window.Store.imageDataUrl(genRecord).then(function (href) {
+      return href;
+    }, function () {
+      // no readable image -> fall back to a generated white canvas
+      return whiteDataUrl(W, H);
+    });
+    var ovPromise = genRecord.overlay
+      ? window.Store.imageDataUrl({ imageHash: genRecord.overlay.hash, imageSrc: genRecord.overlay.imageSrc })
+          .catch(function () { return null; })
+      : Promise.resolve(null);
+    return Promise.all([basePromise, ovPromise]).then(function (res) {
+      var svg = buildExportSVG(genRecord, res[0], displayFontPx, fixCrossing(genPoints), res[1]);
+      return rasterizeSvg(svg, W, H).then(function (blob) {
+        return { png: blob, svg: svg };
+      }, function () {
+        return { png: null, svg: svg };
+      });
+    });
+  }
+
+  function copyGen() {
+    if (!genRecord) { toast("请先选择一个模板", "warning"); return; }
+    buildGenImage().then(function (out) {
+      if (!out.png) { toast("无法复制该图片", "error"); return; }
+      copyImageBlob(out.png).then(function (copied) {
+        if (copied) { toast("已复制到剪贴板"); }
+        else { toast("剪贴板不可用，请改用下载", "warning"); }
+      });
+    }).catch(function (err) {
+      toast((err && err.message) || "复制失败", "error");
+    });
+  }
+
+  function downloadGen() {
+    if (!genRecord) { toast("请先选择一个模板", "warning"); return; }
+    buildGenImage().then(function (out) {
+      if (out.png) {
+        saveBlob(out.png, baseName(genRecord) + ".png");
+        toast("已下载 PNG");
+      } else {
+        saveBlob(new Blob([out.svg], { type: "image/svg+xml" }), baseName(genRecord) + ".svg");
+        toast("已下载 SVG");
+      }
+    }).catch(function (err) {
+      toast((err && err.message) || "下载失败", "error");
+    });
+  }
+
+  genCopy.addEventListener("click", copyGen);
+  genDownload.addEventListener("click", downloadGen);
+
+  // ---------- import / export (zip) ----------
+  function extFor(record, blob) {
+    var m = /\.([a-z0-9]+)$/i.exec((record.imageName || "").trim());
+    if (m) { return "." + m[1].toLowerCase(); }
+    var type = (blob && blob.type) || "";
+    if (type.indexOf("jpeg") >= 0 || type.indexOf("jpg") >= 0) { return ".jpg"; }
+    if (type.indexOf("webp") >= 0) { return ".webp"; }
+    if (type.indexOf("gif") >= 0) { return ".gif"; }
+    if (type.indexOf("svg") >= 0) { return ".svg"; }
+    return ".png";
+  }
+
+  function mimeFromName(name) {
+    var m = /\.([a-z0-9]+)$/i.exec(name || "");
+    var ext = m ? m[1].toLowerCase() : "";
+    if (ext === "jpg" || ext === "jpeg") { return "image/jpeg"; }
+    if (ext === "webp") { return "image/webp"; }
+    if (ext === "gif") { return "image/gif"; }
+    if (ext === "svg") { return "image/svg+xml"; }
+    if (ext === "png") { return "image/png"; }
+    return "application/octet-stream";
+  }
+
+  function templateInfo(rec, file) {
+    return {
+      name: rec.name,
+      width: rec.width,
+      height: rec.height,
+      points: rec.points,
+      imageName: rec.imageName || null,
+      image: file || null,
+      imageSrc: file ? null : (rec.imageSrc || null),
+      createdAt: rec.createdAt || null,
+      updatedAt: rec.updatedAt || null
+    };
+  }
+
+  function exportTemplates() {
+    var list = selectedRecords();
+    if (!list.length) { list = genRecord ? [genRecord] : []; }
+    if (!list.length) { toast("没有可导出的模板", "warning"); return; }
+    var images = {};
+    var order = [];
+    Promise.all(list.map(function (rec) {
+      return window.Store.imageBlob(rec).then(function (blob) {
+        if (!blob) { return { rec: rec, file: null }; }
+        var key = rec.imageHash || ("path:" + (rec.imageSrc || rec.id));
+        if (!images[key]) {
+          var fname = "images/" + (rec.imageHash ? rec.imageHash.slice(0, 24) : "img-" + rec.id) + extFor(rec, blob);
+          images[key] = { blob: blob, name: fname };
+          order.push(key);
+        }
+        return { rec: rec, file: images[key].name };
+      });
+    })).then(function (pairs) {
+      var infos = pairs.map(function (p) { return templateInfo(p.rec, p.file); });
+      var groups = {};
+      infos.forEach(function (info) {
+        if (!info.image) { return; }
+        if (!groups[info.image]) { groups[info.image] = []; }
+        groups[info.image].push(info);
+      });
+      var manifest = {
+        app: "Chatbox-tool",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        images: order.map(function (key) {
+          return { file: images[key].name, templates: groups[images[key].name] || [] };
+        }),
+        templates: infos
+      };
+      var files = [{ name: "manifest.json", data: new TextEncoder().encode(JSON.stringify(manifest, null, 2)) }];
+      return Promise.all(order.map(function (key) {
+        return images[key].blob.arrayBuffer().then(function (buf) {
+          files.push({ name: images[key].name, data: new Uint8Array(buf) });
+        });
+      })).then(function () { return files; });
+    }).then(function (files) {
+      saveBlob(window.Zip.create(files), "exported-templates.zip");
+      toast("已导出 " + list.length + " 个模板");
+    }).catch(function (err) {
+      toast((err && err.message) || "导出失败", "error");
+    });
+  }
+
+  function importBuffer(buffer) {
+    return window.Zip.extract(buffer).then(function (entries) {
+      var man = null;
+      for (var i = 0; i < entries.length; i++) {
+        if (/(^|\/)manifest\.json$/i.test(entries[i].name)) { man = entries[i]; break; }
+      }
+      if (!man) { throw new Error("manifest.json not found in zip"); }
+      var manifest = JSON.parse(new TextDecoder().decode(man.data));
+      var fileMap = {};
+      entries.forEach(function (e) { fileMap[e.name] = e.data; });
+      var list = manifest.templates || [];
+      return window.Store.list().then(function (existing) {
+        var names = {};
+        existing.forEach(function (r) { names[(r.name || "").trim().toLowerCase()] = true; });
+        var base = Date.now();
+        var jobs = list.map(function (t, idx) {
+          var nm = (t.name || "Imported").trim() || "Imported";
+          var name = nm, n = 2;
+          while (names[name.toLowerCase()]) { name = nm + " (" + n + ")"; n++; }
+          names[name.toLowerCase()] = true;
+          var data = t.image ? fileMap[t.image] : null;
+          var blob = data ? new Blob([data], { type: mimeFromName(t.image) }) : null;
+          var rec = {
+            id: window.Store.newId(),
+            name: name,
+            width: t.width,
+            height: t.height,
+            points: t.points,
+            imageHash: null,
+            imageSrc: blob ? null : (t.imageSrc || null),
+            imageName: t.imageName || "image",
+            overlay: null,
+            createdAt: base + idx,
+            updatedAt: base + idx
+          };
+          return window.Store.put(rec, blob);
+        });
+        return Promise.all(jobs);
+      });
+    });
+  }
+
+  function importZip(file) {
+    if (!file) { return; }
+    var fr = new FileReader();
+    fr.onload = function () {
+      importBuffer(fr.result).then(function () {
+        toast("导入完成");
+        populateGenSelect();
+      }).catch(function (err) {
+        toast((err && err.message) || "导入失败", "error");
+      });
+    };
+    fr.onerror = function () { toast("无法读取文件", "error"); };
+    fr.readAsArrayBuffer(file);
+  }
+
+  // first run: seed the bundled default templates
+  function seedDefaults() {
+    if (!window.DEFAULT_TEMPLATES_ZIP) { return Promise.resolve(false); }
+    var SEED_FLAG = "defaults-seeded";
+    try { if (localStorage.getItem(SEED_FLAG)) { return Promise.resolve(false); } } catch (_) {}
+    return window.Store.list().then(function (all) {
+      try { localStorage.setItem(SEED_FLAG, "1"); } catch (_) {}
+      if (all.length) { return false; }
+      return fetch(window.DEFAULT_TEMPLATES_ZIP)
+        .then(function (r) { return r.arrayBuffer(); })
+        .then(function (buf) { return importBuffer(buf); })
+        .then(function () { return true; });
+    });
+  }
+
+  function deleteTemplates(list) {
+    var removed = {};
+    list.forEach(function (r) { removed[r.id] = true; delete selectedIds[r.id]; });
+    Promise.all(list.map(function (r) { return window.Store.remove(r.id); })).then(function () {
+      if (genRecord && removed[genRecord.id]) {
+        genRecord = null;
+        genFrame.classList.add("hidden");
+        genEmpty.hidden = false;
+        genEmpty.textContent = "选择一个模板，把文字生成到它的区域里。";
+        updateTplTrigger();
+      }
+      toast("已删除 " + list.length + " 个模板");
+      populateGenSelect();
+    }, function () {
+      toast("删除失败", "error");
+    });
+  }
+
+  function selectedRecords() {
+    var out = [];
+    genRecords.forEach(function (r) { if (selectedIds[r.id]) { out.push(r); } });
+    return out;
+  }
+
+  function updateSelectionUI() {
+    var n = Object.keys(selectedIds).length;
+    ppDelete.disabled = n === 0;
+    ppSelectAll.classList.toggle("active", genRecords.length > 0 && n === genRecords.length);
+  }
+
+  function syncPickerChecks() {
+    Array.prototype.forEach.call(tplGrid.querySelectorAll(".tpl-card"), function (c) {
+      var cb = c.querySelector(".tpl-checkbox");
+      if (cb) { cb.checked = !!selectedIds[c.getAttribute("data-id")]; }
+    });
+    updateSelectionUI();
+  }
+
+  ppSelectAll.addEventListener("click", function () {
+    if (genRecords.length && Object.keys(selectedIds).length === genRecords.length) {
+      selectedIds = {};
+    } else {
+      selectedIds = {};
+      genRecords.forEach(function (r) { selectedIds[r.id] = true; });
+    }
+    syncPickerChecks();
+  });
+
+  ppExport.addEventListener("click", exportTemplates);
+  ppImport.addEventListener("click", function () { tplImportFile.click(); });
+  tplImportFile.addEventListener("change", function (e) {
+    importZip(e.target.files && e.target.files[0]);
+    e.target.value = "";
+  });
+  ppDelete.addEventListener("click", function () {
+    var list = selectedRecords();
+    if (!list.length) { toast("请先选择要删除的模板", "warning"); return; }
+    if (ppDelete.classList.contains("armed")) {
+      ppDelete.classList.remove("armed");
+      clearTimeout(ppDelete._armTimer);
+      hideConfirmTip();
+      deleteTemplates(list);
+      return;
+    }
+    disarmDelete(ppDelete);
+    ppDelete.classList.add("armed");
+    ppDelete.setAttribute("data-confirm", "确定删除 " + list.length + " 个模板？再次点击确认");
+    showConfirmTip(ppDelete);
+    clearTimeout(ppDelete._armTimer);
+    ppDelete._armTimer = setTimeout(function () {
+      ppDelete.classList.remove("armed");
+      if (armedBtn === ppDelete) { hideConfirmTip(); }
+    }, 4000);
+  });
+
+  // ---------- views ----------
+  function switchTab(name) {
+    ["editor", "generate"].forEach(function (t) {
+      document.getElementById("view-" + t).classList.toggle("hidden", t !== name);
+    });
+    editorSubbar.classList.toggle("hidden", name !== "editor");
+    if (name === "editor") {
+      disarmDelete(null);
+      render();
+    } else {
+      populateGenSelect();
+    }
+  }
+
+  // clicking anywhere else cancels a pending delete
+  document.addEventListener("click", function (e) {
+    var keep = e.target && e.target.closest ? e.target.closest("button.armed") : null;
+    disarmDelete(keep);
+  });
+
+  // keep the confirmation bubble glued to the button
+  window.addEventListener("scroll", function () { if (armedBtn) { placeConfirmTip(); } }, true);
+  window.addEventListener("resize", function () { if (armedBtn) { placeConfirmTip(); } });
+
+  // ---------- initial load ----------
+  function loadDefault() {
+    editingId = null;
+    editingCreatedAt = null;
+    nameInput.value = "";
+    clearOvUrl();
+    ov = null;
+    ovImg.removeAttribute("src");
+    ovBox.classList.add("hidden");
+    setImage(null, whiteDataUrl(1920, 1080), "图片");
+  }
+
+  // ---------- draggable floating toolbars ----------
+  function makeDraggable(panel) {
+    var handle = panel.querySelector(".drag-handle");
+    if (!handle) { return; }
+    var dragging = false, sx = 0, sy = 0, ox = 0, oy = 0;
+    handle.addEventListener("pointerdown", function (e) {
+      if (e.button !== 0) { return; }
+      var r = panel.getBoundingClientRect();
+      panel.style.left = r.left + "px";
+      panel.style.top = r.top + "px";
+      dragging = true;
+      sx = e.clientX; sy = e.clientY; ox = r.left; oy = r.top;
+      handle.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    handle.addEventListener("pointermove", function (e) {
+      if (!dragging) { return; }
+      var r = panel.getBoundingClientRect();
+      var nx = ox + (e.clientX - sx);
+      var ny = oy + (e.clientY - sy);
+      nx = Math.max(8, Math.min(nx, window.innerWidth - r.width - 8));
+      ny = Math.max(8, Math.min(ny, window.innerHeight - r.height - 8));
+      panel.style.left = nx + "px";
+      panel.style.top = ny + "px";
+    });
+    function end(e) {
+      if (!dragging) { return; }
+      dragging = false;
+      try { handle.releasePointerCapture(e.pointerId); } catch (_) {}
+    }
+    handle.addEventListener("pointerup", end);
+    handle.addEventListener("pointercancel", end);
+  }
+  Array.prototype.forEach.call(
+    document.querySelectorAll(".subbar, .gen-controls"),
+    makeDraggable
+  );
+
+  function init() {
+    var id = new URLSearchParams(location.search).get("id");
+    if (!id) {
+      loadDefault();
+      seedDefaults().then(function () { switchTab("generate"); }, function () { switchTab("generate"); });
+      return;
+    }
+    window.Store.get(id).then(function (record) {
+      if (!record) {
+        toast("找不到该模板", "warning");
+        loadDefault();
+        switchTab("generate");
+        return;
+      }
+      editRecord(record);
+    }, function () {
+      toast("加载模板失败", "error");
+      loadDefault();
+      switchTab("generate");
+    });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
